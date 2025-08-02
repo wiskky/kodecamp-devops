@@ -36,7 +36,7 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@v6
       with:
-        context: ./frontend
+        context: ./Dream-Vacation-App/Dream-Vacation-App/frontend
         push: true
         tags: ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
     
