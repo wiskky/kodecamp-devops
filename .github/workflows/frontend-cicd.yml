@@ -1,0 +1,43 @@
+name: Frontend CICD
+
+on:
+  push:
+    branches: [ "vacation-cicd" ]
+    paths:
+      - 'frontend/**'
+  pull_request:
+    branches: [ "vacation-cicd" ]
+    paths:
+      - 'frontend/**'
+  workflow_dispatch:
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: vacation-frontend
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Build the Docker image
+      uses: actions/checkout@v4
+      
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Build and push
+      uses: docker/build-push-action@v6
+      with:
+        context: ./frontend
+        push: true
+        tags: ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+    
+      
