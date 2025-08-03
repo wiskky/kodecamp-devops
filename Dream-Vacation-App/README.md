@@ -1,4 +1,4 @@
-# Dream-Vacation-App
+# Dream-Vacation-App  
 The Dream-Vacation-App is a full-stack web application that helps users explore vacation destinations, built with a React frontend, Node.js backend, PostgreSQL database, and fully containerized using Docker and Docker Compose.
 
 **Ensure required packages are installed**  
@@ -25,7 +25,7 @@ Note wiskky is my docker hub username, change it to your own docker hub username
 
 Then run `# docker ps`
 
-![](Dream-Vacation-App/.Image/DockerImages.JPG)  
+![](kodecamp-devops/Dream-Vacation-App/.Image/DockerImages.JPG)  
 
 On your broswer, type http:localhost
 ![](Dream-Vacation-App/.Image/frontendOutput.JPG)
@@ -33,10 +33,10 @@ On your broswer, type http:localhost
 To push your image into docker hub, Then run 
 
 `# docker push wiskky/vacantion-frontend:latest` 
-![](Dream-Vacation-App/.Image/dockerpushh.JPG)
+![](./Dream-Vacation-App/.Image/dockerpushh.JPG)
 
 Login into your docker hhub accont and check 
-![](Dream-Vacation-App/.Image/DockerPush.JPG)
+![](./Dream-Vacation-App/.Image/DockerPush.JPG)
 
 **NOTE** For backend ollow the same step aove to run docker build command and push.
 
