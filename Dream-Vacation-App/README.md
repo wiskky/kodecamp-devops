@@ -25,23 +25,23 @@ Note wiskky is my docker hub username, change it to your own docker hub username
 
 Then run `# docker ps`
 
-![](Image/DockerImages.JPG)  
+![](Dream-Vacation-App/.Image/DockerImages.JPG)  
 
 On your broswer, type http:localhost
-![](Image/frontendOutput.JPG)
+![](Dream-Vacation-App/.Image/frontendOutput.JPG)
 
 To push your image into docker hub, Then run 
 
 `# docker push wiskky/vacantion-frontend:latest` 
-![](Image/dockerpushh.JPG)
+![](Dream-Vacation-App/.Image/dockerpushh.JPG)
 
 Login into your docker hhub accont and check 
-![](Image/DockerPush.JPG)
+![](Dream-Vacation-App/.Image/DockerPush.JPG)
 
 **NOTE** For backend ollow the same step aove to run docker build command and push.
 
 # Using docker compose to containerize your application
-![](Image/tree.JPG)
+![](Dream-Vacation-App/.Image/tree.JPG)
 
 To run your docker compose, use the below command
 `# docker-compose up --build`
@@ -49,20 +49,20 @@ To run your docker compose, use the below command
 After finish running, then check yyour image and the container
 ` # docker images`
 
-![](Image/compose1.JPG)  
+![](Dream-Vacation-App/.Image/compose1.JPG)  
 
 You will notice that, two images are added dream-vacantion-backend and dream-vacantion-frontend.
 
 Also, check if your container is running  
 `# docker ps`  
 
-![](Image/compose2.JPG)  
+![](Dream-Vacation-App/.Image/compose2.JPG)  
 
 Now go to your browser and check yyour application if it is running  
 
 `http://localhost:3000`  
 
-![](Image/Result.JPG)  
+![](Dream-Vacation-App/.Image/Result.JPG)  
 
 
 # Automate the continuous integration using github Action  
