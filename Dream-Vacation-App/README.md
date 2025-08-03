@@ -62,4 +62,45 @@ Now go to your browser and check yyour application if it is running
 
 `http://localhost:3000`  
 
-![](Image/Result.JPG)
+![](Image/Result.JPG)  
+
+
+# Automate the continuous integration using github Action  
+
+## The aim is to use GitHub Action to build our application and push them as a Docker images with Buildx into  docker hub.
+
+In other to achieve this, on your github on the application repository, click on `Action` and this will create a directory called ./github/worflow/<anyname.yml> 
+
+Let us start with frontend app,  I created ./github/workflow/frontend-cicd.yml
+
+After finish building, you will see this 
+
+![](Dream-Vacation-App/.Image/fd3.JPG)  
+
+![](Dream-Vacation-App/.Image/fd2.JPG)  
+
+![](Dream-Vacation-App/.Image/fd1.JPG)  
+
+Click on build to see your workflow, If any steps failed, you will see it here and clisk to see the reason it fails. 
+
+![](Dream-Vacation-App/.Image/fd5.JPG)
+
+Then go to hub.docker.com to comfirm to check.
+
+![](Dream-Vacation-App/.Image/DockerPush.JPG)  
+
+![](Dream-Vacation-App/.Image/fd5.JPG)  
+
+On this workflow directory ./github/workflow/ create backend-cicd.yml for backend app.
+
+![](Dream-Vacation-App/.Image/bd1.JPG)  
+
+![](Dream-Vacation-App/.Image/bd2.JPG) 
+
+![](Dream-Vacation-App/.Image/bd4.JPG)
+
+Then check the docker hub  
+
+![](Dream-Vacation-App/.Image/bd5.JPG)  
+
+![](Dream-Vacation-App/.Image/bd6.JPG)  
