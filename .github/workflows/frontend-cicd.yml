@@ -10,7 +10,7 @@ on:
     paths:
       - 'frontend/**'
   workflow_dispatch:
-    
+
 env:
   REGISTRY: docker.io
   IMAGE_NAME: vacation-frontend
@@ -40,5 +40,22 @@ jobs:
         context: ./Dream-Vacation-App/Dream-Vacation-App/frontend
         push: true
         tags: ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
     
+    deploy-ec2:
+      needs: build-and-push
+      runs-on: ubuntu-latest
+
+      steps:
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v0.1.10
+          with:
+            host: ${{ secrets.EC2_HOST }}
+            username: ${{ secrets.EC2_USER }}
+            key: ${{ secrets.EC2_SSH_KEY }}
+            script: |
+              docker pull ${{ secrets.DOCKERHUB_USERNAME }}/frontend-app:latest
+              docker stop frontend || true
+              docker rm frontend || true
+              docker run -d --name frontend -p 80:80 ${{ secrets.DOCKERHUB_USERNAME }}/frontend-app:latest  
       
