@@ -57,5 +57,5 @@ jobs:
               docker pull ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:v2
               docker stop frontend || true
               docker rm frontend || true
-              docker run -d --name frontend -p 80:80 ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:v2  
+              docker run -d --name frontend -p 3000:3000 ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:v2  
       
