@@ -104,3 +104,5 @@ Then check the docker hub
 ![](../Dream-Vacation-App/.Image/bd5.JPG)  
 
 ![](Dream-Vacation-App/.Image/bd6.JPG)  
+
+## To deploy this application to aws
