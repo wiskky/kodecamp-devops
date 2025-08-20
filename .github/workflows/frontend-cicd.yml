@@ -2,11 +2,11 @@ name: Frontend CICD
 
 on:
   push:
-    branches: [ "vacation-cicd" ]
+    branches: [ "aws-cicd" ]
     paths:
       - 'frontend/**'
   pull_request:
-    branches: [ "vacation-cicd" ]
+    branches: [ "aws-cicd" ]
     paths:
       - 'frontend/**'
   workflow_dispatch:
@@ -43,7 +43,7 @@ jobs:
 
     
     deploy-ec2:
-      needs: build-and-push
+      needs: build
       runs-on: ubuntu-latest
 
       steps:
@@ -54,8 +54,8 @@ jobs:
             username: ${{ secrets.EC2_USER }}
             key: ${{ secrets.EC2_SSH_KEY }}
             script: |
-              docker pull ${{ secrets.DOCKERHUB_USERNAME }}/frontend-app:latest
+              docker pull ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:v2
               docker stop frontend || true
               docker rm frontend || true
-              docker run -d --name frontend -p 80:80 ${{ secrets.DOCKERHUB_USERNAME }}/frontend-app:v2  
+              docker run -d --name frontend -p 80:80 ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:v2  
       
