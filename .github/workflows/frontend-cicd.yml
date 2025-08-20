@@ -37,7 +37,7 @@ jobs:
         with:
           context: ./Dream-Vacation-App/Dream-Vacation-App/frontend
           push: true
-          tags: ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          tags: ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:v2
 
   deploy-ec2:
     needs: build
@@ -53,4 +53,4 @@ jobs:
             docker pull ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
             docker stop frontend || true
             docker rm frontend || true
-            docker run -d --name frontend -p 3000:3000 ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+            docker run -d --name frontend -p 3000:3000 ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:v2
