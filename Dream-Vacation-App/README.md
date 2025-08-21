@@ -103,11 +103,14 @@ Then check the docker hub
 
 ![](../Dream-Vacation-App/.Image/bd5.JPG)  
 
-![](Dream-Vacation-App/.Image/bd6.JPG)  
+![](../Dream-Vacation-App/.Image/bd6.JPG)  
 
 ## To deploy this application to the cloud using AWS.
 
 First we need to update our workflow and include the actions that will do this.  
 
 We created our VPC, subnet and we also created our internet gateway to be able to access our application from outside the cloud environment.  
-To ensure that we are able to access it from the browser on our system, we created a security group that allow port 3000 because this is the port that our application is listen on.
+To ensure that we are able to access it from the browser on our system, we created a security group that allow port 3000 because this is the port that our application is listen on.  
+
+![](../Dream-Vacation-App/.Image/vpc.jpg) 
+
