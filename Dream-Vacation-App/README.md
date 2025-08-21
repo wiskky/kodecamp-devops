@@ -126,7 +126,7 @@ Then we created our ec2
 ![](../Dream-Vacation-App/.Image/ec2.PNG)
 
 When we trigger our worklow, 
-![](../Dream-Vacation-App/.Image/build.PNG)
+![](../Dream-Vacation-App/.Image/building.PNG)
 
 When the worklow finish building and deploy into ec2
 ![](../Dream-Vacation-App/.Image/complete.PNG)
