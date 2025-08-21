@@ -110,7 +110,33 @@ Then check the docker hub
 First we need to update our workflow and include the actions that will do this.  
 
 We created our VPC, subnet and we also created our internet gateway to be able to access our application from outside the cloud environment.  
-To ensure that we are able to access it from the browser on our system, we created a security group that allow port 3000 because this is the port that our application is listen on.  
+To ensure that we are able to access it from the browser on our system, we created a security group that allow port 3000 because this is the port that our application is listen on. 
 
-![](../Dream-Vacation-App/.Image/vpc.jpg) 
+We create a VPC named dream-vpc with IP 10.0.0.0/16
+![](../Dream-Vacation-App/.Image/vpc.jpg)  
 
+We create subnet named dream-subnet with IP 10.0.1.0/24 
+![](../Dream-Vacation-App/.Image/subnet.PNG)
+
+We also create internet gateway and route table  
+![](../Dream-Vacation-App/.Image/igw.PNG)
+![](../Dream-Vacation-App/.Image/routetable.PNG)
+
+Then we created our ec2
+![](../Dream-Vacation-App/.Image/ec2.PNG)
+
+When we trigger our worklow, 
+![](../Dream-Vacation-App/.Image/build.PNG)
+
+When the worklow finish building and deploy into ec2
+![](../Dream-Vacation-App/.Image/complete.PNG)
+
+Login into your docker hubb and check if you can see your image
+![](../Dream-Vacation-App/.Image/docker-hub-result.PNG)
+
+Also ssh into your ec2 and check your immage if thhey are and running
+![](../Dream-Vacation-App/.Image/sshh-to-ec2.PNG)  
+![](../Dream-Vacation-App/.Image/ec2-result.PNG)
+
+Copy your public IP address on your ec2 and paste it on the broser with port 3000
+![](../Dream-Vacation-App/.Image/onweb.PNG)
