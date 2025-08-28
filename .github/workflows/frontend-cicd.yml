@@ -5,6 +5,8 @@ on:
     branches: [ "aws-cicd" ]
     paths:
       - 'frontend/**'
+      - 'infra/**'
+      - '.github/workflows/**'
   pull_request:
     branches: [ "aws-cicd" ]
     paths:
