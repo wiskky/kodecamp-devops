@@ -1,3 +1,4 @@
+# Part 1: Networking Setup
 terraform {
   required_version = ">= 1.6.0"
   required_providers {
@@ -12,39 +13,29 @@ provider "aws" {
   region = var.region
 }
 
-# Creating VPC, Subnet amd IGW 
+# Creating VPC, Subnet and IGW 
 resource "aws_vpc" "dream" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
-
-  tags = {
-    Name = "dream-vpc" 
-  }
+  tags = { Name = "dream-vpc" }
 }
 
 resource "aws_subnet" "dream" {
   vpc_id                  = aws_vpc.dream.id
   cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true
-
-  tags = { 
-    Name = "dream-subnet" 
-  }
+  tags = { Name = "dream-subnet" }
 }
 
 resource "aws_internet_gateway" "dream" {
   vpc_id = aws_vpc.dream.id
-  tags   = { 
-    Name = "dream-igw" 
-  }
+  tags   = { Name = "dream-igw" }
 }
 
 resource "aws_route_table" "dream" {
   vpc_id = aws_vpc.dream.id
-  tags   = { 
-    Name = "dream-rt" 
-  }
+  tags   = { Name = "dream-rt" }
 }
 
 resource "aws_route" "default_inet" {
@@ -63,7 +54,6 @@ resource "aws_security_group" "web" {
   name        = "dream-sg"
   description = "Allow SSH and HTTP"
   vpc_id      = aws_vpc.dream.id
-
   ingress {
     description = "SSH"
     from_port   = 22
@@ -71,17 +61,15 @@ resource "aws_security_group" "web" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   ingress {
     description = "HTTP"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-  }
 
   ingress {
-    description = "HTTP"
+    description = "Custom application port"
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
@@ -95,7 +83,6 @@ resource "aws_security_group" "web" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   tags = { 
     Name = "dream-sg" 
   }
@@ -140,13 +127,11 @@ resource "aws_iam_instance_profile" "cw_profile" {
 # ---------- AMI (Latest Ubuntu LTS 22.04 Jammy) ----------
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["099720109477"] # Canonical
-
+  owners      = ["099720109477"] 
   filter {
     name   = "name"
     values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
   }
-
   filter {
     name   = "virtualization-type"
     values = ["hvm"]
@@ -155,104 +140,64 @@ data "aws_ami" "ubuntu" {
 
 # ---------- EC2 ----------
 resource "aws_instance" "app" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = "t2.micro"
-  subnet_id              = aws_subnet.dream.id
-  vpc_security_group_ids = [aws_security_group.web.id]
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t2.micro"
+  subnet_id                   = aws_subnet.dream.id
+  vpc_security_group_ids      = [aws_security_group.web.id]
   associate_public_ip_address = true
-  iam_instance_profile   = aws_iam_instance_profile.cw_profile.name
-  key_name               = var.ssh_key_name 
+  iam_instance_profile        = aws_iam_instance_profile.cw_profile.name
+  key_name                    = var.ssh_key_name 
 
   user_data = <<-EOF
-    #!/usr/bin/env bash
+    #!/bin/bash
     set -e
-
-    # Updates
     apt-get update -y
-
-    # Install Docker & Compose plugin
-    apt-get install -y ca-certificates curl gnupg lsb-release
-    apt-get install -y docker.io docker-compose-plugin
+    apt-get install -y ca-certificates curl gnupg lsb-release docker.io docker-compose-plugin
     systemctl enable docker
     systemctl start docker
     usermod -aG docker ubuntu || true
-
-    # Install CloudWatch Agent
     CW_DEB="/tmp/amazon-cloudwatch-agent.deb"
     curl -fsSL -o ${CW_DEB} https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
     dpkg -i ${CW_DEB}
-
-    # CloudWatch Agent config: send cpu, mem, disk metrics (cpu is required; extras are a bonus)
     mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
-    cat >/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'JSON'
+    cat >/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<JSON
     {
       "agent": {
         "metrics_collection_interval": 60,
-        "run_as_user": "root",
-        "region": "${region}"
+        "run_as_user": "root"
       },
       "metrics": {
         "namespace": "EC2/DreamVacation",
         "append_dimensions": {
-          "InstanceId": "${aws:InstanceId}"
+          "InstanceId": "${self.id}"
         },
         "metrics_collected": {
           "cpu": {
             "measurement": ["cpu_usage_idle", "cpu_usage_system", "cpu_usage_user"],
-            "metrics_collection_interval": 60,
-            "totalcpu": true
-          },
-          "mem": { "measurement": ["mem_used_percent"], "metrics_collection_interval": 60 },
-          "disk": { "measurement": ["disk_used_percent"], "resources": ["*"], "metrics_collection_interval": 60 }
+            "metrics_collection_interval": 60
+          }
         }
       }
     }
     JSON
-
     /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 \
       -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
-
   EOF
-
   tags = { Name = "dream-ec2" }
 }
 
 # ---------- CloudWatch Alarm (CPU > 70% for 2 x 1-min) ----------
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   alarm_name          = "dream-ec2-high-cpu"
-  comparison_operator = "GreaterThanThreshold"
+  comparison_operator = "LessThanThreshold"
   evaluation_periods  = 2
-  threshold           = 70
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/EC2"
+  threshold           = 30
   period              = 60
   statistic           = "Average"
   dimensions = {
     InstanceId = aws_instance.app.id
   }
-  treat_missing_data = "notBreaching"
+  metric_name = "cpu_usage_idle"
+  namespace   = "EC2/DreamVacation"
   alarm_description  = "CPU > 70% for 2 minutes on dream-ec2"
 }
-
-# ---------- Variables ----------
-variable "region" {
-  description = "AWS region"
-  type        = string
-  default     = "eu-north-1"
-}
-
-variable "ssh_key_name" {
-  description = "Existing EC2 key pair name (for SSH)"
-  type        = string
-}
-
-# handy locals used by user_data template
-locals {
-  region = var.region
-}
-
-# Inject region into user_data template
-data "template_file" "noop" {
-  template = ""
-}
-
