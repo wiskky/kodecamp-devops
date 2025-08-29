@@ -183,6 +183,8 @@ resource "aws_instance" "app" {
     /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 \
       -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
   EOF
+  tags = { Name = "dream-ec2" }
+}
 
 # ---------- CloudWatch Alarm (CPU > 70% for 2 x 1-min) ----------
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
