@@ -169,7 +169,7 @@ resource "aws_instance" "app" {
       "metrics": {
         "namespace": "EC2/DreamVacation",
         "append_dimensions": {
-          "InstanceId": "${aws_instance.app.id}"
+          "InstanceId": "${aws:InstanceId}" 
         },
         "metrics_collected": {
           "cpu": {
