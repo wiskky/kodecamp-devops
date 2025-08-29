@@ -148,7 +148,7 @@ resource "aws_instance" "app" {
   iam_instance_profile        = aws_iam_instance_profile.cw_profile.name
   key_name                    = var.ssh_key_name 
 
-  user_data = <<-EOF
+ user_data = <<-EOF
     #!/bin/bash
     set -e
     apt-get update -y
@@ -157,8 +157,8 @@ resource "aws_instance" "app" {
     systemctl start docker
     usermod -aG docker ubuntu || true
     CW_DEB="/tmp/amazon-cloudwatch-agent.deb"
-    curl -fsSL -o ${CW_DEB} https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
-    dpkg -i ${CW_DEB}
+    curl -fsSL -o \$CW_DEB https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+    dpkg -i \$CW_DEB
     mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
     cat >/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<JSON
     {
@@ -169,7 +169,7 @@ resource "aws_instance" "app" {
       "metrics": {
         "namespace": "EC2/DreamVacation",
         "append_dimensions": {
-          "InstanceId": "${aws_instance.app.id}" # Corrected "self" reference
+          "InstanceId": "${aws_instance.app.id}"
         },
         "metrics_collected": {
           "cpu": {
@@ -183,8 +183,6 @@ resource "aws_instance" "app" {
     /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 \
       -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
   EOF
-  tags = { Name = "dream-ec2" }
-}
 
 # ---------- CloudWatch Alarm (CPU > 70% for 2 x 1-min) ----------
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
