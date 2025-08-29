@@ -91,9 +91,9 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host:     ${{ needs.terraform.outputs.ec2_ip }}
-          username: ${{ secrets.EC2_USER }}           # usually "ubuntu"
+          username: ${{ secrets.EC2_USER }}           
           key:      ${{ secrets.EC2_SSH_KEY }}
-          source:   "docker-compose.yml"
+          source:   "./Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml"
           target:   "~/"
 
       - name: Deploy containers over SSH
