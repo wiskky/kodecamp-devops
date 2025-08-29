@@ -139,4 +139,25 @@ Also ssh into your ec2 and check your immage if thhey are and running
 ![](../Dream-Vacation-App/.Image/ec2-result.PNG)
 
 Copy your public IP address on your ec2 and paste it on the broser with port 3000
-![](../Dream-Vacation-App/.Image/onweb.PNG)
+![](../Dream-Vacation-App/.Image/onweb.PNG)  
+
+## Wewant to use Terraform to provision our App
+![](../Dream-Vacation-App/.Image/Terraform-apply.PNG)
+
+### We use Terraform to create vpc, subnet and other components
+![](../Dream-Vacation-App/.Image/terraform-vpc.PNG)  
+
+![](../Dream-Vacation-App/.Image/terraform-subnet.PNG.PNG}
+
+We also use terraform to provision EC@ and cloudwatch to monitor our resources  
+
+![](../Dream-Vacation-App/.Image/Teraform-ec2.PNG)  
+
+![](../Dream-Vacation-App/.Image/cloudwatch.PNG)
+
+
+
+
+
+
+
