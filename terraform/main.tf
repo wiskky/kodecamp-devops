@@ -67,7 +67,7 @@ resource "aws_security_group" "web" {
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-
+  }
   ingress {
     description = "Custom application port"
     from_port   = 3000
