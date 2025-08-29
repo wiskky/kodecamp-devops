@@ -119,10 +119,10 @@ resource "aws_iam_role_policy_attachment" "attach_ssm" {
   policy_arn = data.aws_iam_policy.ssm_core.arn
 }
 
-resource "aws_iam_instance_profile" "cw_profile" {
-  name = "dream-cw-instance-profile"
-  role = aws_iam_role.cw_role.name
-}
+#resource "aws_iam_instance_profile" "cw_profile" {
+#  name = "dream-cw-instance-profile"
+#  role = aws_iam_role.cw_role.name
+#}
 
 # ---------- AMI (Latest Ubuntu LTS 22.04 Jammy) ----------
 data "aws_ami" "ubuntu" {
