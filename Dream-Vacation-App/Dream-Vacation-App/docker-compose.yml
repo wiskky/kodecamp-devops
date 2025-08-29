@@ -3,6 +3,7 @@ version: '3.8'
 services:
   frontend:
     build: ./frontend
+    image: docker.io/${DOCKERHUB_USERNAME}/vacation-frontend:v3
     ports:
       - "3000:80"
     depends_on:
