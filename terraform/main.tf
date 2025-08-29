@@ -148,7 +148,7 @@ resource "aws_instance" "app" {
   iam_instance_profile        = aws_iam_instance_profile.cw_profile.name
   key_name                    = var.ssh_key_name 
 
-  user_data = <<-EOF
+  user_data = <<-EOT 
     #!/bin/bash
     set -e
     apt-get update -y
@@ -169,7 +169,7 @@ resource "aws_instance" "app" {
       "metrics": {
         "namespace": "EC2/DreamVacation",
         "append_dimensions": {
-          "InstanceId": "${self.id}"
+          "InstanceId": "${aws_instance.app.id}"
         },
         "metrics_collected": {
           "cpu": {
@@ -182,7 +182,7 @@ resource "aws_instance" "app" {
     JSON
     /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 \
       -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
-  EOF
+  EOT
   tags = { Name = "dream-ec2" }
 }
 
