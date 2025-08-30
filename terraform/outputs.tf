@@ -1,21 +1,17 @@
-output "vpc_id" {
-  value       = aws_vpc.main.id
-  description = "VPC ID"
+output "ec2_public_ip" {
+  description = "Public IP of the EC2 instance"
+  value       = aws_instance.web.public_ip
+}
+
+output "security_group_id" {
+  value       = aws_security_group.web_sg.id
+  description = "Web security group ID"
 }
 
 output "subnet_id" {
-  value       = aws_subnet.public_a.id
-  description = "Public subnet ID"
+  value       = aws_subnet.public.id
 }
 
-output "route_table_id" {
-  value       = aws_route_table.public.id
-  description = "Route table ID"
+output "vpc_id" {
+  value       = aws_vpc.main.id
 }
-
-output "ec2_public_ip" {
-  value       = aws_instance.app.public_ip
-  description = "EC2 public IP"
-}
-
-
