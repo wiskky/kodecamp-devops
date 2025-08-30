@@ -105,5 +105,5 @@ jobs:
           envs:     DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
           script: |
             docker login -u "${DOCKERHUB_USERNAME}" -p "${{ secrets.DOCKERHUB_TOKEN }}"
-            docker compose -f ~/docker-compose.yml pull
-            docker compose -f ~/docker-compose.yml up -d
+            docker compose -f ./Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml pull
+            docker compose -f ./Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml up -d

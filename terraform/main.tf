@@ -52,7 +52,7 @@ resource "aws_route_table_association" "subnet_assoc" {
 # ---------- Security Group ----------
 resource "aws_security_group" "web" {
   name        = "dream-sg"
-  description = "Allow SSH and HTTP"
+  description = "Allow SSH, HTTP and port 3000"
   vpc_id      = aws_vpc.dream.id
   ingress {
     description = "SSH"
@@ -120,27 +120,13 @@ resource "aws_iam_role_policy_attachment" "attach_ssm" {
 }
 
 resource "aws_iam_instance_profile" "cw_profile" {
-  name = "dream-cw-inst-profile"
+  name = "dream-cw-insts-profile"
   role = aws_iam_role.cw_role.name
 }
 
-# ---------- AMI (Latest Ubuntu LTS 22.04 Jammy) ----------
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"] 
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
-  }
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
-# ---------- EC2 ----------
+# ---------- EC2 Ubuntu AMI ----------
 resource "aws_instance" "app" {
-  ami                         = data.aws_ami.ubuntu.id
+  ami                         = var.ubuntu_ami
   instance_type               = "t3.micro"
   subnet_id                   = aws_subnet.dream.id
   vpc_security_group_ids      = [aws_security_group.web.id]
@@ -156,6 +142,7 @@ user_data = <<-EOF
     systemctl enable docker
     systemctl start docker
     usermod -aG docker ubuntu || true
+
     CW_DEB="/tmp/amazon-cloudwatch-agent.deb"
     curl -fsSL -o \$CW_DEB https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
     dpkg -i \$CW_DEB
