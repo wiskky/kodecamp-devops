@@ -1,17 +1,23 @@
-variable "region" {
-  description = "AWS region"
+variable "aws_region" {
+  description = "AWS region to deploy resources"
   type        = string
   default     = "eu-north-1"
 }
 
-variable "ssh_key_name" {
-  description = "Existing EC2 key pair name (for SSH)"
+variable "ami_id" {
+  description = "Ubuntu AMI ID"
   type        = string
-  default     = "dream-key"
+  default     = "ami-0a716d3f3b16d290c" 
 }
 
-# ---------- Ubuntu AMI ----------
-variable "ubuntu_ami" {
-  description = "Ubuntu ami"
-  default = "ami-0a716d3f3b16d290c"
+variable "instance_type" {
+  description = "EC2 instance type"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "ssh_key_name" {
+  description = "Existing EC2 key pair name"
+  type        = string
+  default     = "dream-key"
 }
