@@ -43,7 +43,6 @@ jobs:
         working-directory: ./terraform
         run: |
           terraform init -input=false
-          terraform fmt -input=false
           terraform plan -input=false
           terraform apply -auto-approve -input=false
           ip=$(terraform output -raw ec2_public_ip)
