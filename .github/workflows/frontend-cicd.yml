@@ -135,7 +135,7 @@ jobs:
             sudo docker compose pull || echo "No images to pull."
 
             echo "Starting containers..."
-            sudo docker compose up -d
+            docker compose -f ~/Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml up -d
 
             echo "Listing running containers..."
             sudo docker ps -a
