@@ -17,3 +17,15 @@ variable "ec2_key_pair" {
   default     = dream-key
 }
 
+
+variable "instance_type" {
+  description = "EC2 instance type"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "ssh_key_name" {
+  description = "Existing EC2 key pair name"
+  type        = string
+  default     = "dream-key"
+}
