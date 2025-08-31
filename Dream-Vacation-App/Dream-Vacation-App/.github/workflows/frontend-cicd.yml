@@ -5,7 +5,7 @@ on:
     branches: [ "terraform-github-cicd" ]
     paths:
       - 'frontend/**'
-      - 'terraform/**'
+      - 'Dream-Vacation-App/Dream-Vacation-App/**'
       - '.github/workflows/**'
   pull_request:
     branches: [ "terraform-github-cicd" ]
@@ -40,9 +40,8 @@ jobs:
 
       - name: Terraform Init/Plan/Apply
         id: tf
-        working-directory: ./terraform
+        working-directory: ./Dream-Vacation-App/Dream-Vacation-App
         run: |
-          set -e
           terraform init -input=false
           terraform plan -input=false
           terraform apply -auto-approve -input=false
@@ -68,7 +67,6 @@ jobs:
 
       - name: Build & Push
         run: |
-          set -e
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/vacation-frontend:v3 ./Dream-Vacation-App/Dream-Vacation-App/frontend
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/vacation-frontend:v3
 
@@ -87,7 +85,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "./Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml"
-          target: "~/"
+          target: "~/Dream-Vacation-App/Dream-Vacation-App"
 
       - name: Run docker compose on EC2
         uses: appleboy/ssh-action@v0.1.10
@@ -97,41 +95,21 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -euo pipefail
-
-            COMPOSE=/home/ubuntu/docker-compose.yml
-
             echo "Connecting to EC2 and preparing deployment..."
 
-            # Install Docker if missing
-            if ! command -v docker >/dev/null 2>&1; then
-              echo "Docker not found. Installing..."
-              sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
-              sudo apt-get update
-              sudo apt-get install -y ca-certificates curl gnupg lsb-release
-              sudo install -m 0755 -d /etc/apt/keyrings
-              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-              sudo apt-get update
-              sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-            fi
-
-            # Ensure compose file exists
-            if [ ! -f "$COMPOSE" ]; then
-              echo "ERROR: $COMPOSE not found on EC2."
+            cd ~/Dream-Vacation-App/Dream-Vacation-App || {
+              echo "Error: Project directory not found on EC2."
               exit 1
-            fi
+            }
 
-            echo "Logging in to Docker Hub..."
-            printf '%s' "${{ secrets.DOCKERHUB_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
 
-            echo "Pulling latest frontend image..."
-            sudo docker compose -f "$COMPOSE" pull frontend
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-            echo "Starting frontend container..."
-            sudo docker compose -f "$COMPOSE" up -d frontend
+            docker compose pull
+            docker compose up -d
 
-            echo "Listing running containers..."
-            sudo docker ps -a
+            docker ps -a
 
       - name: Show App URL
         run: echo "Visit http://${{ needs.terraform.outputs.ec2_ip }}:3000"

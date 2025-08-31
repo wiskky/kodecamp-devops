@@ -1,56 +1,48 @@
-terraform {
-  required_version = ">= 1.6.0"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
 provider "aws" {
   region = var.aws_region
 }
 
-# ---------------- Networking ----------------
-resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_support   = true
-  enable_dns_hostnames = true
+# VPC
+resource "aws_vpc" "dream_vpc" {
+  cidr_block = "10.0.0.0/16"
   tags = { Name = "dream-vpc" }
 }
 
-resource "aws_subnet" "public" {
-  vpc_id                  = aws_vpc.main.id
+# Subnet
+resource "aws_subnet" "dream_subnet" {
+  vpc_id                  = aws_vpc.dream_vpc.id
   cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true
-  tags = { Name = "dream-public-subnet" }
+  availability_zone       = "${var.aws_region}a"
+  tags = { Name = "dream-subnet" }
 }
 
-resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.main.id
-  tags = { Name = "dream-igw" }
+# Internet Gateway
+resource "aws_internet_gateway" "dream_igw" {
+  vpc_id = aws_vpc.dream_vpc.id
+  tags   = { Name = "dream-igw" }
 }
 
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
+# Route Table
+resource "aws_route_table" "dream_rt" {
+  vpc_id = aws_vpc.dream_vpc.id
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gw.id
+    gateway_id = aws_internet_gateway.dream_igw.id
   }
-  tags = { Name = "dream-public-rt" }
+  tags = { Name = "dream-rt" }
 }
 
-resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public.id
-  route_table_id = aws_route_table.public.id
+# Route Table Association
+resource "aws_route_table_association" "dream_assoc" {
+  subnet_id      = aws_subnet.dream_subnet.id
+  route_table_id = aws_route_table.dream_rt.id
 }
 
-# ---------------- Security Group ----------------
-resource "aws_security_group" "web_sg" {
-  name        = "dream-web-sg"
-  description = "Allow SSH and app port 3000"
-  vpc_id      = aws_vpc.main.id
+# Security Group (allow SSH + HTTP + frontend 3000)
+resource "aws_security_group" "dream_sg" {
+  vpc_id = aws_vpc.dream_vpc.id
+  name   = "dream-sg"
 
   ingress {
     description = "SSH"
@@ -61,157 +53,83 @@ resource "aws_security_group" "web_sg" {
   }
 
   ingress {
-    description = "Dream App"
+    description = "HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Frontend App"
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-   egress {
-    description = "All outbound"
+  egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  tags = { 
-    Name = "dream-sg" 
-  }
+
+  tags = { Name = "dream-sg" }
 }
 
-# ---------------- IAM for CloudWatch Agent ----------------
-resource "aws_iam_role" "ec2_role" {
-  name = "ec2-cloudwatch-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Principal = { Service = "ec2.amazonaws.com" },
-      Action = "sts:AssumeRole"
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "cw_attach" {
-  role       = aws_iam_role.ec2_role.name
-  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
-}
-
-resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "ec2-cloudwatch-profile"
-  role = aws_iam_role.ec2_role.name
-}
-
-# ---------------- EC2 Instance ----------------
-resource "aws_instance" "web" {
-  ami                    = var.ami_id
-  instance_type          = var.instance_type
-  subnet_id              = aws_subnet.public.id
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
+# EC2 Instance
+resource "aws_instance" "app_instance" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "t2.micro"
+  subnet_id              = aws_subnet.dream_subnet.id
+  vpc_security_group_ids = [aws_security_group.dream_sg.id]
   associate_public_ip_address = true
-  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
-  key_name               = var.ssh_key_name
+  key_name               = var.ec2_key_pair
 
-  # IMPORTANT: bash user_data only (no cloud-init per your request)
   user_data = <<-EOF
-              #!/bin/bash
-              set -euxo pipefail
-              export DEBIAN_FRONTEND=noninteractive
-              apt-get update -y
-              apt-get install -y docker.io docker-compose-plugin amazon-cloudwatch-agent
-              systemctl enable docker
-              systemctl start docker
-
-              # CloudWatch Agent config (system + docker logs, basic metrics)
-              mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
-              cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<'JSON'
-              {
-                "agent": {
-                  "metrics_collection_interval": 60,
-                  "logfile": "/opt/aws/amazon-cloudwatch-agent/logs/agent.log"
-                },
-                "metrics": {
-                  "append_dimensions": {
-                    "InstanceId": "$${aws:InstanceId}"
-                  },
-                  "metrics_collected": {
-                    "mem": {
-                      "measurement": ["mem_used_percent"],
-                      "metrics_collection_interval": 60
-                    },
-                    "disk": {
-                      "measurement": ["used_percent"],
-                      "metrics_collection_interval": 60,
-                      "resources": ["*"]
-                    }
-                  }
-                },
-                "logs": {
-                  "logs_collected": {
-                    "files": {
-                      "collect_list": [
-                        { "file_path": "/var/log/syslog", "log_group_name": "ec2-syslog", "log_stream_name": "{instance_id}" },
-                        { "file_path": "/var/log/cloud-init.log", "log_group_name": "ec2-cloudinit", "log_stream_name": "{instance_id}" },
-                        { "file_path": "/var/lib/docker/containers/*/*.log", "log_group_name": "docker-containers", "log_stream_name": "{instance_id}" }
-                      ]
-                    }
-                  }
-                }
-              }
-              JSON
-
-              systemctl enable amazon-cloudwatch-agent
-              systemctl restart amazon-cloudwatch-agent || systemctl start amazon-cloudwatch-agent
-              EOF
+    #!/bin/bash
+    apt-get update -y
+    apt-get install -y docker.io docker-compose
+    systemctl enable docker
+    systemctl start docker
+    # Install CloudWatch Agent
+    apt-get install -y wget unzip
+    cd /opt
+    wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+    dpkg -i -E ./amazon-cloudwatch-agent.deb
+    systemctl enable amazon-cloudwatch-agent
+    systemctl start amazon-cloudwatch-agent
+  EOF
 
   tags = { Name = "dream-ec2" }
 }
 
-# ---------------- CloudWatch Dashboard ----------------
-resource "aws_cloudwatch_dashboard" "ec2_dashboard" {
-  dashboard_name = "EC2-Monitoring-Dashboard"
-  dashboard_body = jsonencode({
-    widgets = [
-      {
-        "type": "metric",
-        "x": 0, "y": 0, "width": 12, "height": 6,
-        "properties": {
-          "view": "timeSeries",
-          "stacked": false,
-          "region": var.aws_region,
-          "title": "EC2 CPU Utilization",
-          "metrics": [
-            ["AWS/EC2","CPUUtilization","InstanceId", aws_instance.web.id]
-          ]
-        }
-      },
-      {
-        "type": "metric",
-        "x": 0, "y": 6, "width": 12, "height": 6,
-        "properties": {
-          "view": "timeSeries",
-          "stacked": false,
-          "region": var.aws_region,
-          "title": "Memory Used (%)",
-          "metrics": [
-            ["CWAgent","mem_used_percent","InstanceId", aws_instance.web.id]
-          ]
-        }
-      },
-      {
-        "type": "metric",
-        "x": 0, "y": 12, "width": 12, "height": 6,
-        "properties": {
-          "view": "timeSeries",
-          "stacked": false,
-          "region": var.aws_region,
-          "title": "Disk Used (%)",
-          "metrics": [
-            ["CWAgent","disk_used_percent","InstanceId", aws_instance.web.id]
-          ]
-        }
-      }
-    ]
-  })
+# Ubuntu Latest AMI
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"] # Canonical
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+}
+
+# CloudWatch Alarm
+resource "aws_cloudwatch_metric_alarm" "cpu_alarm" {
+  alarm_name          = "high-cpu"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 70
+  alarm_description   = "This alarm triggers if CPU usage > 70% for 2 minutes"
+  actions_enabled     = false
+
+  dimensions = {
+    InstanceId = aws_instance.app_instance.id
+  }
 }
