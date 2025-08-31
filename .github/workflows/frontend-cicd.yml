@@ -67,8 +67,8 @@ jobs:
 
       - name: Build & Push
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/dream-vacation-app:v3 ./Dream-Vacation-App/Dream-Vacation-App/frontend
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/dream-vacation-app:v3
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/vacation-frontend:v3 ./Dream-Vacation-App/Dream-Vacation-App/frontend
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/vacation-frontend:v3
 
   deploy:
     name: SSH Deploy to EC2
@@ -101,44 +101,40 @@ jobs:
             # Install Docker if missing
             if ! command -v docker >/dev/null 2>&1; then
               echo "Docker not found. Installing..."
-
               sudo apt-get remove -y docker docker-engine docker.io containerd runc || true
               sudo apt-get update
               sudo apt-get install -y ca-certificates curl gnupg lsb-release
-
               sudo install -m 0755 -d /etc/apt/keyrings
               curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
                 sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-              sudo chmod a+r /etc/apt/keyrings/docker.gpg
-
               echo \
                 "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
                 https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
                 sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
               sudo apt-get update
               sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+              sudo usermod -aG docker $USER
             fi
 
-            cd ~/Dream-Vacation-App/Dream-Vacation-App || {
-              echo "Error: Project directory not found on EC2."
-              exit 1
-            }
-
             echo "Creating .env file..."
-            echo "DOCKER_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
+            cat <<EOF > ~/Dream-Vacation-App/Dream-Vacation-App/.env
+DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}
+POSTGRES_DB=vacationdb
+POSTGRES_PASSWORD=vacationpass
+EOF
 
             echo "Logging in to Docker Hub..."
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
             echo "Pulling latest images..."
-            sudo docker compose pull || echo "No images to pull."
+            docker compose -f ~/Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml pull
 
             echo "Starting containers..."
             docker compose -f ~/Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml up -d
 
             echo "Listing running containers..."
-            sudo docker ps -a
+            docker ps -a
 
       - name: Show App URL
         run: echo "Visit http://${{ needs.terraform.outputs.ec2_ip }}:3000"
