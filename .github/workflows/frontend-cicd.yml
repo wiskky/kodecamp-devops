@@ -97,6 +97,15 @@ jobs:
             set -euo pipefail
 
             echo "Connecting to EC2 and preparing deployment..."
+
+            # Install Docker if missing
+            if ! command -v docker >/dev/null 2>&1; then
+              echo "Docker not found. Installing..."
+              sudo apt-get update
+              sudo apt-get install -y docker.io docker-compose-plugin
+              sudo usermod -aG docker $USER
+            fi
+
             cd ~/Dream-Vacation-App/Dream-Vacation-App || {
               echo "Error: Project directory not found on EC2."
               exit 1
