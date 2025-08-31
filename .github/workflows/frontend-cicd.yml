@@ -42,6 +42,7 @@ jobs:
         id: tf
         working-directory: ./terraform
         run: |
+          set -e
           terraform init -input=false
           terraform plan -input=false
           terraform apply -auto-approve -input=false
@@ -67,6 +68,7 @@ jobs:
 
       - name: Build & Push
         run: |
+          set -e
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/vacation-frontend:v3 ./Dream-Vacation-App/Dream-Vacation-App/frontend
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/vacation-frontend:v3
 
@@ -96,6 +98,8 @@ jobs:
           script: |
             set -euo pipefail
 
+            COMPOSE=/home/ubuntu/Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml
+
             echo "Connecting to EC2 and preparing deployment..."
 
             # Install Docker if missing
@@ -105,36 +109,29 @@ jobs:
               sudo apt-get update
               sudo apt-get install -y ca-certificates curl gnupg lsb-release
               sudo install -m 0755 -d /etc/apt/keyrings
-              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
-                sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-              echo \
-                "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-                https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
-                sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
               sudo apt-get update
               sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-              sudo usermod -aG docker $USER
             fi
 
-            echo "Creating .env file..."
-            cat <<EOF > ~/Dream-Vacation-App/Dream-Vacation-App/.env
-DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
-DOCKERHUB_TOKEN=${{ secrets.DOCKERHUB_TOKEN }}
-POSTGRES_DB=vacationdb
-POSTGRES_PASSWORD=vacationpass
-EOF
+            # Ensure compose file exists
+            if [ ! -f "$COMPOSE" ]; then
+              echo "ERROR: $COMPOSE not found on EC2."
+              exit 1
+            fi
 
             echo "Logging in to Docker Hub..."
-            echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+            printf '%s' "${{ secrets.DOCKERHUB_TOKEN }}" | sudo docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-            echo "Pulling latest images..."
-            docker compose -f ~/Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml pull
+            echo "Pulling latest frontend image..."
+            sudo docker compose -f "$COMPOSE" pull frontend
 
-            echo "Starting containers..."
-            docker compose -f ~/Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml up -d
+            echo "Starting frontend container..."
+            sudo docker compose -f "$COMPOSE" up -d frontend
 
             echo "Listing running containers..."
-            docker ps -a
+            sudo docker ps -a
 
       - name: Show App URL
         run: echo "Visit http://${{ needs.terraform.outputs.ec2_ip }}:3000"
