@@ -87,7 +87,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "./Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml"
-          target: "~/Dream-Vacation-App/Dream-Vacation-App"
+          target: "~/"
 
       - name: Run docker compose on EC2
         uses: appleboy/ssh-action@v0.1.10
@@ -98,7 +98,7 @@ jobs:
           script: |
             set -euo pipefail
 
-            COMPOSE=/home/ubuntu/Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml
+            COMPOSE=/home/ubuntu/docker-compose.yml
 
             echo "Connecting to EC2 and preparing deployment..."
 
