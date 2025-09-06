@@ -35,7 +35,7 @@ jobs:
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
         with:
-          context: ./Dream-Vacation-App/Dream-Vacation-App
+          context: ./Dream-Vacation-App/Dream-Vacation-App/frontend
           push: true
           tags: |
             ${{ env.DOCKER_IMAGE }}:latest
