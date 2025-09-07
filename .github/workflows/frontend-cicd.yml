@@ -74,14 +74,21 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Generate SSH key (if absent)
-        id: sshkey
+      #This command make use of the existing ssh key in EC2
+      - name: Set up ssh key
         run: |
-          mkdir -p $HOME/.ssh
-          if [ ! -f "$HOME/.ssh/dream-key" ]; then
-            ssh-keygen -t ed25519 -N "" -f $HOME/.ssh/dream-key
-          fi
-          echo "PUB_KEY=$(cat $HOME/.ssh/dream-key.pub)" >> $GITHUB_OUTPUT
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > dream-key.pem
+          chmod 600 dream-key.pem
+
+      # Thisgenerate new ssh key in EC2
+      # - name: Generate SSH key (if absent)
+      #   id: sshkey
+      #   run: |
+      #     mkdir -p $HOME/.ssh
+      #     if [ ! -f "$HOME/.ssh/dream-key" ]; then
+      #       ssh-keygen -t ed25519 -N "" -f $HOME/.ssh/dream-key
+      #     fi
+      #     echo "PUB_KEY=$(cat $HOME/.ssh/dream-key.pub)" >> $GITHUB_OUTPUT
 
       - name: Terraform init
         run: terraform init
@@ -131,8 +138,8 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ needs.terraform.outputs.public_ip }}
-          username: ubuntu
-          key: ./dream-key
+          username: ${{ secrets.EC2_USER }}
+          key: ./dream-key.pem
           source: |
             Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml
           target: /home/ubuntu/
@@ -141,13 +148,15 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ needs.terraform.outputs.public_ip }}
-          username: ubuntu
-          key: ./dream-key
+          username: ${{ secrets.EC2_USER }}
+          key: ./dream-key.pem
           script: |
             set -eux
             sudo apt update -y
             sudo apt install -y docker.io docker-compose-plugin
             sudo systemctl enable --now docker
+            
+            # Docker login
             echo ${{ secrets.DOCKERHUB_TOKEN }} | sudo docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
             cd /home/ubuntu
             export DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
