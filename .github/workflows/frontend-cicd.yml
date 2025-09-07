@@ -43,8 +43,6 @@ jobs:
           context: ./Dream-Vacation-App/Dream-Vacation-App/frontend
           push: true
           tags: |
-            # Comment out `latest` if you don't want it
-            # ${{ env.DOCKER_IMAGE }}:latest
             ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
 
   # ============================================================
