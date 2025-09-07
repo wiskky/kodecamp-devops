@@ -1,3 +1,5 @@
+
+
 name: Frontend CICD
 
 on:
@@ -20,6 +22,9 @@ env:
   APP_PORT: "3000"
 
 jobs:
+  # ============================================================
+  # 1. Build and Push Docker Image
+  # ============================================================
   build_and_push_image:
     runs-on: ubuntu-latest
     steps:
@@ -38,9 +43,13 @@ jobs:
           context: ./Dream-Vacation-App/Dream-Vacation-App/frontend
           push: true
           tags: |
-            ${{ env.DOCKER_IMAGE }}:latest
+            # Comment out `latest` if you don't want it
+            # ${{ env.DOCKER_IMAGE }}:latest
             ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
 
+  # ============================================================
+  # 2. Provision AWS Infrastructure with Terraform
+  # ============================================================
   terraform:
     runs-on: ubuntu-latest
     needs: build_and_push_image
@@ -49,9 +58,16 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
     outputs:
       public_ip: ${{ steps.tfout.outputs.public_ip }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Install Terraform before running any Terraform commands
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.9.5 # Use a stable version
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -94,6 +110,9 @@ jobs:
           path: ~/.ssh/dream-key
           retention-days: 1
 
+  # ============================================================
+  # 3. Deploy Application to EC2
+  # ============================================================
   deploy:
     runs-on: ubuntu-latest
     needs: terraform
@@ -128,12 +147,15 @@ jobs:
           key: ./dream-key
           script: |
             set -eux
+            sudo apt update -y
+            sudo apt install -y docker.io docker-compose-plugin
             sudo systemctl enable --now docker
             echo ${{ secrets.DOCKERHUB_TOKEN }} | sudo docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
             cd /home/ubuntu
             export DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
             sudo docker compose -f docker-compose.yml pull
             sudo docker compose -f docker-compose.yml up -d
+
 
 
 
