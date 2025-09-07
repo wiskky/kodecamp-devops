@@ -110,11 +110,12 @@ jobs:
           echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
 
       - name: Save private key for next job
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: dream-key
           path: ~/.ssh/dream-key
-          retention-days: 1
+          retention-days: 3
 
   # ============================================================
   # 3. Deploy Application to EC2
@@ -131,6 +132,9 @@ jobs:
         with:
           name: dream-key
           path: .
+          
+      # To verify that the key is downloaded
+      - run: ls -la
 
       - name: Fix key permissions
         run: chmod 600 ./dream-key
