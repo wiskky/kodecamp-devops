@@ -106,7 +106,7 @@ jobs:
       - name: Capture Terraform outputs
         id: tfout
         run: |
-          PUBLIC_IP=$(terraform output -raw public_ip)
+          PUBLIC_IP=$(terraform output -raw public_ip | head -n 1 | tr -d '\r')
           echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
 
       - name: Save private key for next job
