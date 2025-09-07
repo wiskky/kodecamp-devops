@@ -106,7 +106,8 @@ jobs:
       - name: Capture Terraform outputs
         id: tfout
         run: |
-          echo "public_ip=$(terraform output -raw public_ip)" >> $GITHUB_OUTPUT
+          PUBLIC_IP=$(terraform output -raw public_ip)
+          echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
 
       - name: Save private key for next job
         uses: actions/upload-artifact@v4
