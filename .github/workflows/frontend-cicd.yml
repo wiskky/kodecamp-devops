@@ -127,16 +127,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Step 1: Set up the private key from GitHub Secrets
+      # Create key from GitHub secret
       - name: Set up SSH key
         run: |
           echo "${{ secrets.EC2_PRIVATE_KEY }}" > dream-key.pem
           chmod 600 dream-key.pem
 
-      # Optional step: Verify that the key file exists (for debugging only)
-      - run: ls -la
+      - name: Debug SSH key
+        run: cat dream-key.pem | head -5
 
-      # Step 2: Copy docker-compose.yml to EC2 instance
       - name: Copy docker-compose.yml to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -147,7 +146,6 @@ jobs:
             Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml
           target: /home/ubuntu/
 
-      # Step 3: Deploy Docker containers on EC2
       - name: Deploy app on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -156,20 +154,17 @@ jobs:
           key: ./dream-key.pem
           script: |
             set -eux
-            
-            # Install Docker & Docker Compose
             sudo apt update -y
             sudo apt install -y docker.io docker-compose-plugin
             sudo systemctl enable --now docker
 
-            # Docker login
             echo ${{ secrets.DOCKERHUB_TOKEN }} | sudo docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-            
-            # Deploy containers using docker-compose
+
             cd /home/ubuntu
             export DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
             sudo docker compose -f docker-compose.yml pull
             sudo docker compose -f docker-compose.yml up -d
+
 
 
 
