@@ -211,10 +211,4 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   }
 }
 
-############################
-# Outputs
-############################
-output "public_ip" {
-  description = "Public IP of EC2 instance"
-  value       = aws_instance.dream.public_ip
-}
+
