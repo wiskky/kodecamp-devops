@@ -34,7 +34,7 @@ jobs:
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Build Docker image
-        run: docker build -t ${{ env.DOCKER_IMAGE }} ./Dream-Vacation-App/Dream-Vacation-App
+        run: docker build -t ${{ env.DOCKER_IMAGE }} ./Dream-Vacation-App/Dream-Vacation-App/frontend
 
       - name: Push Docker image
         run: docker push ${{ env.DOCKER_IMAGE }}
