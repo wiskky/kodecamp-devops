@@ -117,7 +117,8 @@ jobs:
 
       # Debug captured IP
       - name: Debug IP
-        run: echo "Deploying to IP: ${{ needs.terraform.outputs.public_ip }}"
+        run: |
+          echo "Deploying to IP: ${{ needs.terraform.outputs.public_ip }}"
 
       # Copy docker-compose.yml to EC2
       - name: Copy docker-compose.yml to EC2
