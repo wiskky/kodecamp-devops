@@ -16,8 +16,8 @@ on:
 env:
   AWS_REGION: eu-north-1
   TF_WORKING_DIR: terraform
-  DOCKER_IMAGE: your-dockerhub-username/dream-frontend
-  APP_PORT: 3000
+  DOCKER_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/dream-frontend
+  APP_PORT: "3000"
 
 jobs:
   # ============================================================
@@ -25,22 +25,25 @@ jobs:
   # ============================================================
   build_and_push_image:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Log in to DockerHub
-        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      - name: Docker Hub login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Docker image
-        run: docker build -t ${{ env.DOCKER_IMAGE }} ./Dream-Vacation-App/Dream-Vacation-App/frontend
-
-      - name: Push Docker image
-        run: docker push ${{ env.DOCKER_IMAGE }}
-
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./Dream-Vacation-App/Dream-Vacation-App/frontend
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
   # ============================================================
-  # 2. Provision Infrastructure with Terraform
+  # 2. Provision AWS Infrastructure with Terraform
   # ============================================================
   terraform:
     runs-on: ubuntu-latest
@@ -55,13 +58,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Install Terraform
+      # Install Terraform before running any Terraform commands
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.9.5
+          terraform_version: 1.9.5 # Use a stable version
 
-      # Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -69,35 +71,46 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # Use existing SSH key from GitHub Secrets
-      - name: Set up SSH key
+      #This command make use of the existing ssh key in EC2
+      - name: Set up ssh key
         run: |
           echo "${{ secrets.EC2_PRIVATE_KEY }}" > dream-key.pem
           chmod 600 dream-key.pem
+      # Thisgenerate new ssh key in EC2
+      # - name: Generate SSH key (if absent)
+      #   id: sshkey
+      #   run: |
+      #     mkdir -p $HOME/.ssh
+      #     if [ ! -f "$HOME/.ssh/dream-key" ]; then
+      #       ssh-keygen -t ed25519 -N "" -f $HOME/.ssh/dream-key
+      #     fi
+      #     echo "PUB_KEY=$(cat $HOME/.ssh/dream-key.pub)" >> $GITHUB_OUTPUT
 
-      # Initialize Terraform
       - name: Terraform init
         run: terraform init
 
-      # Terraform plan
       - name: Terraform plan
+        env:
+          TF_VAR_ssh_public_key: ${{ steps.sshkey.outputs.PUB_KEY }}
         run: terraform plan -out=tfplan
 
-      # Terraform apply
       - name: Terraform apply
+        env:
+          TF_VAR_ssh_public_key: ${{ steps.sshkey.outputs.PUB_KEY }}
         run: terraform apply -auto-approve tfplan
 
-      # Capture Terraform output (Public IP)
       - name: Capture Terraform outputs
         id: tfout
         run: |
-          PUBLIC_IP=$(terraform output -raw public_ip | tr -d '\r' | xargs)
-          echo "Terraform Public IP: $PUBLIC_IP"
-          if [ -z "$PUBLIC_IP" ]; then
-            echo "ERROR: No public IP returned by Terraform!" >&2
-            exit 1
-          fi
+          PUBLIC_IP=$(terraform output -raw public_ip | head -n 1 | tr -d '\r')
           echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+      - name: Save private key for next job
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dream-key
+          path: ~/.ssh/dream-key
+          retention-days: 3
 
   # ============================================================
   # 3. Deploy Application to EC2
@@ -109,18 +122,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Create SSH key file from GitHub Secrets
+      # Create key from GitHub secret
       - name: Set up SSH key
         run: |
           echo "${{ secrets.EC2_PRIVATE_KEY }}" > dream-key.pem
           chmod 600 dream-key.pem
+      - name: Debug SSH key
+        run: cat dream-key.pem | head -5
 
-      # Debug captured IP
-      - name: Debug IP
-        run: |
-          echo "Deploying to IP: ${{ needs.terraform.outputs.public_ip }}"
-
-      # Copy docker-compose.yml to EC2
       - name: Copy docker-compose.yml to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -131,7 +140,6 @@ jobs:
             Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml
           target: /home/ubuntu/
 
-      # Deploy the application on EC2
       - name: Deploy app on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -143,12 +151,25 @@ jobs:
             sudo apt update -y
             sudo apt install -y docker.io docker-compose-plugin
             sudo systemctl enable --now docker
-
-            # Docker login
             echo ${{ secrets.DOCKERHUB_TOKEN }} | sudo docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
-
-            # Deploy app
             cd /home/ubuntu
             export DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
             sudo docker compose -f docker-compose.yml pull
             sudo docker compose -f docker-compose.yml up -d
+
+            
+  # deploy-ec2:
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Deploy to EC2 via SSH
+  #       uses: appleboy/ssh-action@v0.1.10
+  #       with:
+  #         host: ${{ secrets.EC2_HOST }}
+  #         username: ${{ secrets.EC2_USER }}
+  #         key: ${{ secrets.EC2_SSH_KEY }}
+  #         script: |
+  #           docker pull ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:v3
+  #           docker stop frontend || true
+  #           docker rm frontend || true
+  #           docker run -d --name frontend -p 3000:80 ${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:v3
