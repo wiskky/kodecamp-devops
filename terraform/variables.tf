@@ -33,6 +33,6 @@ variable "key_name" {
 }
 
 variable "ssh_public_key" {
-  description = "Public key for SSH access (ssh-rsa ... or ssh-ed25519 ...)"
+  description = "Public key for SSH access"
   type        = string
 }

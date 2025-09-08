@@ -1,6 +1,6 @@
-
 terraform {
   required_version = ">= 1.5.0"
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -34,7 +34,6 @@ resource "aws_subnet" "dream" {
   vpc_id                  = aws_vpc.dream.id
   cidr_block              = var.subnet_cidr
   map_public_ip_on_launch = true
-  #availability_zone       = var.az
 
   tags = {
     Name = "dream-subnet"
@@ -109,7 +108,7 @@ resource "aws_security_group" "dream_ec2_sg" {
 }
 
 ############################
-# IAM Role for EC2 (CloudWatch + SSM optional)
+# IAM Role for EC2
 ############################
 resource "aws_iam_role" "ec2_role" {
   name = "dream-ec2-role"
@@ -159,10 +158,17 @@ data "aws_ami" "ubuntu_lts" {
   }
 }
 
-# resource "aws_key_pair" "dream_key" {
-#   key_name   = var.key_name
-#   public_key = var.ssh_public_key
-# }
+# ================================================
+# Dynamic AWS Key Pair from GitHub Actions Workflow
+# ================================================
+resource "aws_key_pair" "dream_generated_key" {
+  key_name   = "dream-key-${random_id.suffix.hex}"
+  public_key = var.ssh_public_key
+}
+
+resource "random_id" "suffix" {
+  byte_length = 4
+}
 
 # Render user data from template
 locals {
@@ -177,7 +183,7 @@ resource "aws_instance" "dream" {
   instance_type               = var.instance_type
   subnet_id                   = aws_subnet.dream.id
   vpc_security_group_ids      = [aws_security_group.dream_ec2_sg.id]
-  key_name                    = var.key_name
+  key_name                    = aws_key_pair.dream_generated_key.key_name
   associate_public_ip_address = true
   iam_instance_profile        = aws_iam_instance_profile.ec2_profile.name
   user_data                   = local.user_data
@@ -203,4 +209,12 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   dimensions = {
     InstanceId = aws_instance.dream.id
   }
+}
+
+############################
+# Outputs
+############################
+output "public_ip" {
+  description = "Public IP of EC2 instance"
+  value       = aws_instance.dream.public_ip
 }
