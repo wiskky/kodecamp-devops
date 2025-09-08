@@ -1,6 +1,5 @@
 terraform {
   required_version = ">= 1.5.0"
-
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -70,11 +69,11 @@ resource "aws_route_table_association" "dream_subnet_assoc" {
 ############################
 resource "aws_security_group" "dream_ec2_sg" {
   name        = "dream-ec2-sg"
-  description = "Allow SSH, HTTP and app port"
+  description = "Allow SSH, HTTP, and app port"
   vpc_id      = aws_vpc.dream.id
 
   ingress {
-    description = "SSH"
+    description = "SSH Access"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
@@ -82,7 +81,7 @@ resource "aws_security_group" "dream_ec2_sg" {
   }
 
   ingress {
-    description = "HTTP"
+    description = "HTTP Access"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -90,7 +89,7 @@ resource "aws_security_group" "dream_ec2_sg" {
   }
 
   ingress {
-    description = "Frontend app on port 3000"
+    description = "Frontend App Port 3000"
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
@@ -104,7 +103,9 @@ resource "aws_security_group" "dream_ec2_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = { Name = "dream-ec2-sg" }
+  tags = {
+    Name = "dream-ec2-sg"
+  }
 }
 
 ############################
@@ -117,9 +118,11 @@ resource "aws_iam_role" "ec2_role" {
     Version = "2012-10-17",
     Statement = [
       {
-        Action    = "sts:AssumeRole",
-        Effect    = "Allow",
-        Principal = { Service = "ec2.amazonaws.com" }
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
       }
     ]
   })
@@ -141,7 +144,19 @@ resource "aws_iam_instance_profile" "ec2_profile" {
 }
 
 ############################
-# Part 2 – EC2 Instance
+# Generate Random Key Name
+############################
+resource "random_id" "suffix" {
+  byte_length = 4
+}
+
+resource "aws_key_pair" "dream_generated_key" {
+  key_name   = "dream-key-${random_id.suffix.hex}"
+  public_key = var.ssh_public_key
+}
+
+############################
+# Find Latest Ubuntu AMI
 ############################
 data "aws_ami" "ubuntu_lts" {
   most_recent = true
@@ -158,19 +173,9 @@ data "aws_ami" "ubuntu_lts" {
   }
 }
 
-# ================================================
-# Dynamic AWS Key Pair from GitHub Actions Workflow
-# ================================================
-resource "aws_key_pair" "dream_generated_key" {
-  key_name   = "dream-key-${random_id.suffix.hex}"
-  public_key = var.ssh_public_key
-}
-
-resource "random_id" "suffix" {
-  byte_length = 4
-}
-
-# Render user data from template
+############################
+# Render User Data
+############################
 locals {
   cw_agent_config = file("${path.module}/cloudwatch-agent.json")
   user_data = templatefile("${path.module}/user_data.sh.tftpl", {
@@ -178,6 +183,9 @@ locals {
   })
 }
 
+############################
+# EC2 Instance
+############################
 resource "aws_instance" "dream" {
   ami                         = data.aws_ami.ubuntu_lts.id
   instance_type               = var.instance_type
@@ -194,7 +202,7 @@ resource "aws_instance" "dream" {
 }
 
 ############################
-# Part 3 – CloudWatch Alarm
+# CloudWatch Alarm
 ############################
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   alarm_name          = "dream-ec2-cpu-high"
@@ -210,5 +218,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
     InstanceId = aws_instance.dream.id
   }
 }
+
+
 
 

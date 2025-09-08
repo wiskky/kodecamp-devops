@@ -10,3 +10,8 @@ output "public_ip" {
   description = "Public IP of EC2 instance"
   value       = aws_instance.dream.public_ip
 }
+
+output "key_pair_name" {
+  description = "Name of the generated key pair"
+  value       = aws_key_pair.dream_generated_key.key_name
+}

@@ -65,7 +65,7 @@ jobs:
         with:
           terraform_version: 1.9.5
 
-      # Configure AWS
+      # Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -111,7 +111,7 @@ jobs:
           fi
           echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
 
-      # Save generated private key for next job
+      # Save generated private key for the deploy job
       - name: Save private key for deploy job
         uses: actions/upload-artifact@v4
         with:
@@ -140,11 +140,13 @@ jobs:
       - name: Set permissions for SSH key
         run: chmod 600 ~/.ssh/dream-key
 
-      # Debug Terraform Output
+      # Debug: Show Terraform Output
       - name: Debug Terraform IP
         run: echo "Public IP = ${{ needs.terraform.outputs.public_ip }}"
 
+      # ============================================================
       # Copy docker-compose.yml to EC2
+      # ============================================================
       - name: Copy docker-compose.yml to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -154,7 +156,9 @@ jobs:
           source: Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml
           target: /home/ubuntu/
 
+      # ============================================================
       # Deploy the app on EC2
+      # ============================================================
       - name: Deploy app on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
