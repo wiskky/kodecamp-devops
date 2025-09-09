@@ -13,6 +13,10 @@ on:
       - 'frontend/**'
   workflow_dispatch:
 
+  concurrency:
+  group: frontend-cicd-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   AWS_REGION: eu-north-1
   TF_WORKING_DIR: terraform
@@ -80,8 +84,8 @@ jobs:
         id: sshkey
         run: |
           mkdir -p ~/.ssh
-          ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/dream-key
-          echo "PUB_KEY=$(cat ~/.ssh/dream-key.pub)" >> $GITHUB_OUTPUT
+          ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/mynew-key
+          echo "PUB_KEY=$(cat ~/.ssh/mynew-key.pub)" >> $GITHUB_OUTPUT
 
       # Terraform Init
       - name: Terraform init
@@ -115,8 +119,8 @@ jobs:
       - name: Save private key for deploy job
         uses: actions/upload-artifact@v4
         with:
-          name: dream-key
-          path: ~/.ssh/dream-key
+          name: mynew-key
+          path: ~/.ssh/mynew-key
           retention-days: 1
 
   # ============================================================
@@ -134,11 +138,11 @@ jobs:
       - name: Download SSH key
         uses: actions/download-artifact@v4
         with:
-          name: dream-key
+          name: mynew-key
           path: ~/.ssh
 
       - name: Set permissions for SSH key
-        run: chmod 600 ~/.ssh/dream-key
+        run: chmod 600 ~/.ssh/mynew-key
 
       # Debug: Show Terraform Output
       - name: Debug Terraform IP
@@ -152,7 +156,7 @@ jobs:
         with:
           host: ${{ needs.terraform.outputs.public_ip }}
           username: ubuntu
-          key: ~/.ssh/dream-key
+          key: ~/.ssh/mynew-key
           source: Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml
           target: /home/ubuntu/
 
@@ -164,7 +168,7 @@ jobs:
         with:
           host: ${{ needs.terraform.outputs.public_ip }}
           username: ubuntu
-          key: ~/.ssh/dream-key
+          key: ~/.ssh/mynew-key
           script: |
             set -eux
             sudo apt update -y

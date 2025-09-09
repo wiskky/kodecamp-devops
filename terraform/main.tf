@@ -151,7 +151,7 @@ resource "random_id" "suffix" {
 }
 
 resource "aws_key_pair" "dream_generated_key" {
-  key_name   = "dream-key-${random_id.suffix.hex}"
+  key_name   = "mynew-key-${random_id.suffix.hex}"
   public_key = var.ssh_public_key
 }
 

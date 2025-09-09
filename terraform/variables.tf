@@ -26,11 +26,11 @@ variable "instance_type" {
   default = "t3.micro"
 }
 
-variable "key_name" {
-  description = "EC2 key pair name"
-  type        = string
-  default     = "dream-key"
-}
+# variable "key_name" {
+#   description = "EC2 key pair name"
+#   type        = string
+#   default     = "dream-key"
+# }
 
 variable "ssh_public_key" {
   description = "Public key for SSH access"
