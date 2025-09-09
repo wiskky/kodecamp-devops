@@ -3,7 +3,7 @@ output "instance_id" {
 }
 
 output "ssh_command" {
-  value = "ssh -i ~/.ssh/mynew-key.pem ubuntu@${aws_instance.dream.public_ip}"
+  value = "ssh -i ~/.ssh/mynew-key ubuntu@${aws_instance.dream.public_ip}"
 }
 
 output "public_ip" {

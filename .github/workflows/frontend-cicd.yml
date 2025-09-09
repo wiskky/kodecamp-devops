@@ -1,16 +1,16 @@
 name: Frontend CICD
 
 on:
-  push:
-    branches: [ "terraform-cicd" ]
-    paths:
-      - 'frontend/**'
-      - 'terraform/**'
-      - '.github/workflows/**'
-  pull_request:
-    branches: [ "terraform-cicd" ]
-    paths:
-      - 'frontend/**'
+  # push:
+  #   branches: [ "terraform-cicd" ]
+  #   paths:
+  #     - 'frontend/**'
+  #     - 'terraform/**'
+  #     - '.github/workflows/**'
+  # pull_request:
+  #   branches: [ "terraform-cicd" ]
+  #   paths:
+  #     - 'frontend/**'
   workflow_dispatch:
 
 concurrency:
@@ -144,6 +144,14 @@ jobs:
       - name: Set permissions for SSH key
         run: chmod 600 ~/.ssh/mynew-key
 
+      # Read private key content into output
+      - name: Read private key content
+        id: readkey
+        run: |
+          echo "PRIVATE_KEY<<EOF" >> $GITHUB_OUTPUT
+          cat ~/.ssh/mynew-key >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       # Debug: Show Terraform Output
       - name: Debug Terraform IP
         run: echo "Public IP = ${{ needs.terraform.outputs.public_ip }}"
@@ -156,7 +164,8 @@ jobs:
         with:
           host: ${{ needs.terraform.outputs.public_ip }}
           username: ubuntu
-          key: ~/.ssh/mynew-key
+          key: ${{ steps.readkey.outputs.PRIVATE_KEY }}
+          port: 22
           source: Dream-Vacation-App/Dream-Vacation-App/docker-compose.yml
           target: /home/ubuntu/
 
@@ -168,7 +177,8 @@ jobs:
         with:
           host: ${{ needs.terraform.outputs.public_ip }}
           username: ubuntu
-          key: ~/.ssh/mynew-key
+          key: ${{ steps.readkey.outputs.PRIVATE_KEY }}
+          port: 22
           script: |
             set -eux
             sudo apt update -y
