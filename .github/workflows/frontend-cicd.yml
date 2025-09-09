@@ -156,6 +156,10 @@ jobs:
       - name: Debug Terraform IP
         run: echo "Public IP = ${{ needs.terraform.outputs.public_ip }}"
 
+      - name: Debug host value
+        run: echo "Resolved host = ${{ needs.terraform.outputs.public_ip }}"
+
+
       # ============================================================
       # Copy docker-compose.yml to EC2
       # ============================================================
