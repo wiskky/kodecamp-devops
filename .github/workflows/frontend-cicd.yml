@@ -13,7 +13,7 @@ on:
       - 'frontend/**'
   workflow_dispatch:
 
-  concurrency:
+concurrency:
   group: frontend-cicd-${{ github.ref }}
   cancel-in-progress: true
 
